@@ -64,7 +64,10 @@ export default function ModuleCard({ module, onUpdate, onDelete }: ModuleCardPro
     try {
       const { data, error } = await supabase
         .from("modules")
-        .update({ is_active: !module.is_active })
+        .update({ 
+          is_active: !module.is_active,
+          updated_at: new Date().toISOString()
+        })
         .eq("id", module.id)
         .select()
         .single()
@@ -75,6 +78,24 @@ export default function ModuleCard({ module, onUpdate, onDelete }: ModuleCardPro
       console.error("Error toggling module:", error)
     } finally {
       setIsToggling(false)
+    }
+  }
+
+  const handleDelete = async () => {
+    if (!confirm("Are you sure you want to delete this module? This action cannot be undone.")) {
+      return
+    }
+
+    try {
+      const { error } = await supabase
+        .from("modules")
+        .delete()
+        .eq("id", module.id)
+
+      if (error) throw error
+      onDelete(module.id)
+    } catch (error) {
+      console.error("Error deleting module:", error)
     }
   }
 
@@ -115,6 +136,7 @@ export default function ModuleCard({ module, onUpdate, onDelete }: ModuleCardPro
             <Button
               variant="ghost"
               size="sm"
+              onClick={() => {/* TODO: Implement edit functionality */}}
               className="text-slate-400 hover:text-white hover:bg-slate-800 p-1 h-8 w-8"
             >
               <Edit className="w-4 h-4" />
@@ -122,6 +144,7 @@ export default function ModuleCard({ module, onUpdate, onDelete }: ModuleCardPro
             <Button
               variant="ghost"
               size="sm"
+              onClick={handleDelete}
               className="text-slate-400 hover:text-red-400 hover:bg-slate-800 p-1 h-8 w-8"
             >
               <Trash2 className="w-4 h-4" />

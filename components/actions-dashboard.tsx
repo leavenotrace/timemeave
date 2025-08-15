@@ -1,7 +1,8 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useMemo, useCallback } from "react"
 import { createClient } from "@/lib/supabase/client"
+import type { Action } from "@/lib/supabase/client"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Card, CardContent } from "@/components/ui/card"
@@ -10,26 +11,10 @@ import ActionCard from "./action-card"
 import CreateAction from "./create-action"
 import FoldingInterface from "./folding-interface"
 
-interface Action {
-  id: string
-  title: string
-  description?: string
-  status: "pending" | "active" | "folded" | "completed"
-  priority: "low" | "medium" | "high"
-  estimated_time?: number
-  actual_time?: number
-  tags?: string[]
-  graph_connections?: string[]
-  folded_actions?: string[]
-  created_at: string
-  updated_at: string
-  user_id: string
-}
-
 export default function ActionsDashboard() {
   const [actions, setActions] = useState<Action[]>([])
-  const [filteredActions, setFilteredActions] = useState<Action[]>([])
   const [searchTerm, setSearchTerm] = useState("")
+  const [debouncedSearchTerm, setDebouncedSearchTerm] = useState("")
   const [selectedStatus, setSelectedStatus] = useState<string>("all")
   const [showCreateModal, setShowCreateModal] = useState(false)
   const [showFoldingInterface, setShowFoldingInterface] = useState(false)
@@ -45,13 +30,38 @@ export default function ActionsDashboard() {
     { value: "completed", label: "Completed", icon: CheckCircle, color: "text-green-400" },
   ]
 
+  // Debounce search term
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedSearchTerm(searchTerm)
+    }, 300)
+
+    return () => clearTimeout(timer)
+  }, [searchTerm])
+
   useEffect(() => {
     fetchActions()
   }, [])
 
-  useEffect(() => {
-    filterActions()
-  }, [actions, searchTerm, selectedStatus])
+  // Memoized filtered actions for better performance
+  const filteredActions = useMemo(() => {
+    let filtered = actions
+
+    if (debouncedSearchTerm) {
+      const searchLower = debouncedSearchTerm.toLowerCase()
+      filtered = filtered.filter(
+        (action) =>
+          action.title.toLowerCase().includes(searchLower) ||
+          action.description?.toLowerCase().includes(searchLower)
+      )
+    }
+
+    if (selectedStatus !== "all") {
+      filtered = filtered.filter((action) => action.status === selectedStatus)
+    }
+
+    return filtered
+  }, [actions, debouncedSearchTerm, selectedStatus])
 
   const fetchActions = async () => {
     try {
@@ -69,37 +79,20 @@ export default function ActionsDashboard() {
     }
   }
 
-  const filterActions = () => {
-    let filtered = actions
-
-    if (searchTerm) {
-      filtered = filtered.filter(
-        (action) =>
-          action.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-          action.description?.toLowerCase().includes(searchTerm.toLowerCase()),
-      )
-    }
-
-    if (selectedStatus !== "all") {
-      filtered = filtered.filter((action) => action.status === selectedStatus)
-    }
-
-    setFilteredActions(filtered)
-  }
-
-  const handleActionCreated = (newAction: Action) => {
-    setActions([newAction, ...actions])
+  // Optimized callback functions
+  const handleActionCreated = useCallback((newAction: Action) => {
+    setActions(prevActions => [newAction, ...prevActions])
     setShowCreateModal(false)
-  }
+  }, [])
 
-  const handleActionUpdated = (updatedAction: Action) => {
-    setActions(actions.map((action) => (action.id === updatedAction.id ? updatedAction : action)))
-  }
+  const handleActionUpdated = useCallback((updatedAction: Action) => {
+    setActions(prevActions => prevActions.map((action) => (action.id === updatedAction.id ? updatedAction : action)))
+  }, [])
 
-  const handleActionDeleted = (actionId: string) => {
-    setActions(actions.filter((action) => action.id !== actionId))
-    setSelectedActions(selectedActions.filter((id) => id !== actionId))
-  }
+  const handleActionDeleted = useCallback((actionId: string) => {
+    setActions(prevActions => prevActions.filter((action) => action.id !== actionId))
+    setSelectedActions(prevSelected => prevSelected.filter((id) => id !== actionId))
+  }, [])
 
   const handleActionSelection = (actionId: string, selected: boolean) => {
     if (selected) {

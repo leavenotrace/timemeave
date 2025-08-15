@@ -77,7 +77,10 @@ export default function ActionCard({ action, onUpdate, onDelete, isSelected, onS
     try {
       const { data, error } = await supabase
         .from("actions")
-        .update({ status: newStatus })
+        .update({ 
+          status: newStatus,
+          updated_at: new Date().toISOString()
+        })
         .eq("id", action.id)
         .select()
         .single()
@@ -88,6 +91,24 @@ export default function ActionCard({ action, onUpdate, onDelete, isSelected, onS
       console.error("Error updating action:", error)
     } finally {
       setIsUpdating(false)
+    }
+  }
+
+  const handleDelete = async () => {
+    if (!confirm("Are you sure you want to delete this action? This action cannot be undone.")) {
+      return
+    }
+
+    try {
+      const { error } = await supabase
+        .from("actions")
+        .delete()
+        .eq("id", action.id)
+
+      if (error) throw error
+      onDelete(action.id)
+    } catch (error) {
+      console.error("Error deleting action:", error)
     }
   }
 
@@ -135,6 +156,7 @@ export default function ActionCard({ action, onUpdate, onDelete, isSelected, onS
             <Button
               variant="ghost"
               size="sm"
+              onClick={() => {/* TODO: Implement edit functionality */}}
               className="text-slate-400 hover:text-white hover:bg-slate-800 p-1 h-8 w-8"
             >
               <Edit className="w-4 h-4" />
@@ -142,6 +164,7 @@ export default function ActionCard({ action, onUpdate, onDelete, isSelected, onS
             <Button
               variant="ghost"
               size="sm"
+              onClick={handleDelete}
               className="text-slate-400 hover:text-red-400 hover:bg-slate-800 p-1 h-8 w-8"
             >
               <Trash2 className="w-4 h-4" />
@@ -174,11 +197,28 @@ export default function ActionCard({ action, onUpdate, onDelete, isSelected, onS
 
           {/* Folded Actions */}
           {action.folded_actions.length > 0 && (
-            <div className="flex items-center gap-2 text-sm">
-              <Layers className="w-3 h-3 text-purple-400" />
-              <span className="text-purple-300">
-                Contains {action.folded_actions.length} folded action{action.folded_actions.length !== 1 ? "s" : ""}
-              </span>
+            <div className="bg-purple-500/10 border border-purple-500/30 rounded-lg p-3">
+              <div className="flex items-center gap-2 text-sm mb-2">
+                <Layers className="w-4 h-4 text-purple-400" />
+                <span className="text-purple-300 font-medium">
+                  Folded Action ({action.folded_actions.length} combined)
+                </span>
+              </div>
+              {action.context?.original_actions && (
+                <div className="space-y-1">
+                  {action.context.original_actions.slice(0, 3).map((originalAction: any, index: number) => (
+                    <div key={index} className="text-xs text-slate-400 flex items-center gap-2">
+                      <div className="w-1 h-1 bg-purple-400 rounded-full"></div>
+                      {originalAction.title}
+                    </div>
+                  ))}
+                  {action.context.original_actions.length > 3 && (
+                    <div className="text-xs text-slate-500">
+                      +{action.context.original_actions.length - 3} more actions
+                    </div>
+                  )}
+                </div>
+              )}
             </div>
           )}
 

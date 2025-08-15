@@ -27,8 +27,8 @@ export default function FoldingInterface({ selectedActionIds, actions, onClose, 
   const calculateFoldedMetrics = () => {
     const totalEstimatedTime = selectedActions.reduce((sum, action) => sum + (action.estimated_time || 0), 0)
     const highestPriority = Math.min(...selectedActions.map((action) => action.priority))
-    const allTags = selectedActions.flatMap((action) => action.graph_connections)
-    const uniqueConnections = [...new Set(allTags)]
+    const allConnections = selectedActions.flatMap((action) => action.graph_connections || [])
+    const uniqueConnections = [...new Set(allConnections)]
 
     return {
       totalEstimatedTime,
@@ -55,7 +55,7 @@ export default function FoldingInterface({ selectedActionIds, actions, onClose, 
           priority: metrics.highestPriority,
           estimated_time: metrics.totalEstimatedTime,
           folded_actions: selectedActionIds,
-          graph_connections: [],
+          graph_connections: [...new Set(selectedActions.flatMap((a) => a.graph_connections || []))],
           context: {
             folding_type: "manual",
             original_actions: selectedActions.map((a) => ({

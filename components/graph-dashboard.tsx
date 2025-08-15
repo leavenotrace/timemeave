@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useMemo, useCallback } from "react"
 import { supabase } from "@/lib/supabase/client"
 import type { GraphNode } from "@/lib/supabase/client"
 import { Button } from "@/components/ui/button"
@@ -12,8 +12,8 @@ import CreateGraphNode from "./create-graph-node"
 
 export default function GraphDashboard() {
   const [nodes, setNodes] = useState<GraphNode[]>([])
-  const [filteredNodes, setFilteredNodes] = useState<GraphNode[]>([])
   const [searchTerm, setSearchTerm] = useState("")
+  const [debouncedSearchTerm, setDebouncedSearchTerm] = useState("")
   const [selectedType, setSelectedType] = useState<string>("all")
   const [showCreateModal, setShowCreateModal] = useState(false)
   const [loading, setLoading] = useState(true)
@@ -25,13 +25,39 @@ export default function GraphDashboard() {
     { value: "reference", label: "References", icon: Link2 },
   ]
 
+  // Debounce search term
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedSearchTerm(searchTerm)
+    }, 300)
+
+    return () => clearTimeout(timer)
+  }, [searchTerm])
+
   useEffect(() => {
     fetchNodes()
   }, [])
 
-  useEffect(() => {
-    filterNodes()
-  }, [nodes, searchTerm, selectedType])
+  // Memoized filtered nodes for better performance
+  const filteredNodes = useMemo(() => {
+    let filtered = nodes
+
+    if (debouncedSearchTerm) {
+      const searchLower = debouncedSearchTerm.toLowerCase()
+      filtered = filtered.filter(
+        (node) =>
+          node.title.toLowerCase().includes(searchLower) ||
+          node.content?.toLowerCase().includes(searchLower) ||
+          node.tags.some((tag) => tag.toLowerCase().includes(searchLower))
+      )
+    }
+
+    if (selectedType !== "all") {
+      filtered = filtered.filter((node) => node.type === selectedType)
+    }
+
+    return filtered
+  }, [nodes, debouncedSearchTerm, selectedType])
 
   const fetchNodes = async () => {
     try {
@@ -46,37 +72,21 @@ export default function GraphDashboard() {
     }
   }
 
-  const filterNodes = () => {
-    let filtered = nodes
-
-    if (searchTerm) {
-      filtered = filtered.filter(
-        (node) =>
-          node.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-          node.content?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-          node.tags.some((tag) => tag.toLowerCase().includes(searchTerm.toLowerCase())),
-      )
-    }
-
-    if (selectedType !== "all") {
-      filtered = filtered.filter((node) => node.type === selectedType)
-    }
-
-    setFilteredNodes(filtered)
-  }
-
-  const handleNodeCreated = (newNode: GraphNode) => {
-    setNodes([newNode, ...nodes])
+  // Optimized callback functions
+  const handleNodeCreated = useCallback((newNode: GraphNode) => {
+    setNodes(prevNodes => [newNode, ...prevNodes])
     setShowCreateModal(false)
-  }
+  }, [])
 
-  const handleNodeUpdated = (updatedNode: GraphNode) => {
-    setNodes(nodes.map((node) => (node.id === updatedNode.id ? updatedNode : node)))
-  }
+  const handleNodeUpdated = useCallback((updatedNode: GraphNode) => {
+    setNodes(prevNodes => prevNodes.map((node) => (node.id === updatedNode.id ? updatedNode : node)))
+  }, [])
 
-  const handleNodeDeleted = (nodeId: string) => {
-    setNodes(nodes.filter((node) => node.id !== nodeId))
-  }
+  const handleNodeDeleted = useCallback((nodeId: string) => {
+    setNodes(prevNodes => prevNodes.filter((node) => node.id !== nodeId))
+  }, [])
+
+
 
   if (loading) {
     return (
