@@ -1,7 +1,7 @@
 "use client"
 import { useEffect, useState } from "react"
 import { createClient } from "@/lib/supabase/client"
-import { useTranslation, detectLanguage, type Language } from "@/lib/i18n"
+import { useLanguage } from "@/lib/i18n"
 import GraphDashboard from "@/components/graph-dashboard"
 import { LanguageSwitcher } from "@/components/language-switcher"
 import { Button } from "@/components/ui/button"
@@ -10,20 +10,23 @@ import Link from "next/link"
 export default function Home() {
   const [user, setUser] = useState<any>(null)
   const [loading, setLoading] = useState(true)
-  const [language, setLanguage] = useState<Language>("en")
+  const [mounted, setMounted] = useState(false)
 
-  const t = useTranslation(language)
+  const { language, setLanguage, t } = useLanguage()
   const supabase = createClient()
 
   useEffect(() => {
-    // 检测语言
-    const detectedLang = detectLanguage()
-    const savedLang = localStorage.getItem("timeweave-language") as Language
-    setLanguage(savedLang || detectedLang)
-
+    setMounted(true)
+    
     // 检查用户认证状态
     const checkUser = async () => {
       try {
+        if (!supabase) {
+          setUser(null)
+          setLoading(false)
+          return
+        }
+        
         const {
           data: { user },
         } = await supabase.auth.getUser()
@@ -39,19 +42,25 @@ export default function Home() {
     checkUser()
 
     // 监听认证状态变化
-    const {
-      data: { subscription },
-    } = supabase.auth.onAuthStateChange((event, session) => {
-      setUser(session?.user ?? null)
-      setLoading(false)
-    })
+    if (supabase) {
+      const {
+        data: { subscription },
+      } = supabase.auth.onAuthStateChange((event, session) => {
+        setUser(session?.user ?? null)
+        setLoading(false)
+      })
 
-    return () => subscription.unsubscribe()
+      return () => subscription.unsubscribe()
+    }
   }, [])
 
-  const handleLanguageChange = (lang: Language) => {
-    setLanguage(lang)
-    localStorage.setItem("timeweave-language", lang)
+  // 防止水合错误，在客户端挂载前显示加载状态
+  if (!mounted) {
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-slate-950">
+        <div className="text-amber-400 text-xl">Loading...</div>
+      </div>
+    )
   }
 
   if (loading) {
@@ -66,7 +75,7 @@ export default function Home() {
     return (
       <div className="min-h-screen bg-slate-950 flex flex-col">
         <div className="flex justify-end p-4">
-          <LanguageSwitcher currentLanguage={language} onLanguageChange={handleLanguageChange} />
+          <LanguageSwitcher currentLanguage={language} onLanguageChange={setLanguage} />
         </div>
 
         <div className="flex-1 flex items-center justify-center">

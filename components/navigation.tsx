@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button"
 import { Network, Layers, Zap, BarChart3, Eye, Home, LogOut, BookOpen } from "lucide-react"
 import { createClient } from "@/lib/supabase/client"
 import { useEffect, useState } from "react"
-import { useTranslation, detectLanguage, type Language } from "@/lib/i18n"
+import { useLanguage } from "@/lib/i18n"
 import { LanguageSwitcher } from "@/components/language-switcher"
 
 export default function Navigation() {
@@ -14,8 +14,9 @@ export default function Navigation() {
   const router = useRouter()
   const [user, setUser] = useState<any>(null)
   const [loading, setLoading] = useState(true)
-  const [language, setLanguage] = useState<Language>("en")
-  const t = useTranslation(language)
+  const [mounted, setMounted] = useState(false)
+  
+  const { language, setLanguage, t } = useLanguage()
 
   const navItems = [
     { href: "/graph", label: t.nav.graph, icon: Network },
@@ -27,9 +28,8 @@ export default function Navigation() {
   ]
 
   useEffect(() => {
-    const savedLang = localStorage.getItem("timeweave-language") as Language
-    setLanguage(savedLang || detectLanguage())
-
+    setMounted(true)
+    
     const supabase = createClient()
     if (!supabase) {
       setLoading(false)
@@ -50,7 +50,11 @@ export default function Navigation() {
       setLoading(false)
     })
 
-    return () => subscription.unsubscribe()
+    return () => {
+      if (subscription && subscription.unsubscribe) {
+        subscription.unsubscribe()
+      }
+    }
   }, [])
 
   const handleSignOut = async () => {
@@ -62,11 +66,23 @@ export default function Navigation() {
     router.refresh()
   }
 
-  const handleLanguageChange = (newLanguage: Language) => {
-    setLanguage(newLanguage)
-    if (typeof window !== "undefined") {
-      localStorage.setItem("timeweave-language", newLanguage)
-    }
+  // 防止水合错误，在客户端挂载前不渲染动态内容
+  if (!mounted) {
+    return (
+      <nav className="fixed top-0 left-0 right-0 z-40 bg-slate-900/95 backdrop-blur-sm border-b border-slate-800">
+        <div className="container mx-auto px-4">
+          <div className="flex items-center justify-between h-16">
+            <Link href="/" className="flex items-center gap-2">
+              <Home className="w-6 h-6 text-amber-400" />
+              <span className="text-xl font-bold text-white">TimeWeave</span>
+            </Link>
+            <div className="flex items-center gap-2">
+              <div className="w-20 h-8 bg-slate-800 rounded animate-pulse"></div>
+            </div>
+          </div>
+        </div>
+      </nav>
+    )
   }
 
   return (
@@ -135,7 +151,7 @@ export default function Navigation() {
             )}
 
             <div className="ml-2 pl-2 border-l border-slate-700">
-              <LanguageSwitcher currentLanguage={language} onLanguageChange={handleLanguageChange} />
+              <LanguageSwitcher currentLanguage={language} onLanguageChange={setLanguage} />
             </div>
           </div>
         </div>
