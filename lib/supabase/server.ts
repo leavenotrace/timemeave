@@ -8,7 +8,7 @@ export const isSupabaseConfigured =
   typeof process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY === "string" &&
   process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY.length > 0
 
-export function createClient() {
+export async function createClient() {
   if (!isSupabaseConfigured) {
     console.warn("Supabase environment variables are not set. Using dummy client.")
     return {
@@ -28,7 +28,7 @@ export function createClient() {
   }
 
   try {
-    const cookieStore = cookies()
+    const cookieStore = await cookies()
 
     const supabase = createSupabaseClient(
       process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -37,11 +37,11 @@ export function createClient() {
         auth: {
           persistSession: true, // Enable session persistence
           storage: {
-            getItem: (key: string) => {
+            getItem: async (key: string) => {
               const cookie = cookieStore.get(key)
               return cookie?.value || null
             },
-            setItem: (key: string, value: string) => {
+            setItem: async (key: string, value: string) => {
               cookieStore.set(key, value, {
                 httpOnly: true,
                 secure: process.env.NODE_ENV === "production",
@@ -49,7 +49,7 @@ export function createClient() {
                 maxAge: 60 * 60 * 24 * 7, // 7 days
               })
             },
-            removeItem: (key: string) => {
+            removeItem: async (key: string) => {
               cookieStore.delete(key)
             },
           },

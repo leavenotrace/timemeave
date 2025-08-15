@@ -4,7 +4,7 @@ import SignUpForm from "@/components/signup-form"
 
 export default async function SignUpPage() {
   // Check if user is already logged in
-  const supabase = createClient()
+  const supabase = await createClient()
   const {
     data: { session },
   } = await supabase.auth.getSession()
