@@ -19,7 +19,7 @@ export async function signIn(prevState: any, formData: FormData) {
   let shouldRedirect = false
 
   try {
-    const supabase = createClient()
+    const supabase = await createClient()
     const { data, error } = await supabase.auth.signInWithPassword({
       email: email.toString(),
       password: password.toString(),
@@ -30,7 +30,7 @@ export async function signIn(prevState: any, formData: FormData) {
     }
 
     if (data.session) {
-      const cookieStore = cookies()
+      const cookieStore = await cookies()
 
       cookieStore.set("sb-access-token", data.session.access_token, {
         httpOnly: true,
@@ -84,7 +84,7 @@ export async function signUp(prevState: any, formData: FormData) {
   }
 
   try {
-    const supabase = createClient()
+    const supabase = await createClient()
     const { error } = await supabase.auth.signUp({
       email: email.toString(),
       password: password.toString(),
@@ -107,10 +107,10 @@ export async function signUp(prevState: any, formData: FormData) {
 
 export async function signOut() {
   try {
-    const supabase = createClient()
+    const supabase = await createClient()
     await supabase.auth.signOut()
 
-    const cookieStore = cookies()
+    const cookieStore = await cookies()
     cookieStore.delete("sb-access-token")
     cookieStore.delete("sb-refresh-token")
     cookieStore.delete("sb-user")
