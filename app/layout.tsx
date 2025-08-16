@@ -5,6 +5,10 @@ import { GeistMono } from "geist/font/mono"
 import "./globals.css"
 import Navigation from "@/components/navigation"
 import { Toaster } from "react-hot-toast"
+import { ErrorProvider } from "@/components/providers/error-provider"
+import { LoadingProvider } from "@/components/providers/loading-provider"
+import { ErrorBoundary } from "@/components/ui/error-boundary"
+import { NetworkStatus } from "@/components/ui/network-status"
 
 export const metadata: Metadata = {
   title: "TimeWeave - 时间编织",
@@ -30,21 +34,53 @@ html {
         `}</style>
       </head>
       <body>
-        <Navigation />
-        <div className="pt-16">
-          {children}
-          <Toaster
-            position="top-right"
-            toastOptions={{
-              duration: 4000,
-              style: {
-                background: "#1e293b",
-                color: "#f1f5f9",
-                border: "1px solid #475569",
-              },
-            }}
-          />
-        </div>
+        <ErrorProvider>
+          <LoadingProvider>
+            <ErrorBoundary level="page" maxRetries={3} showErrorDetails={process.env.NODE_ENV === "development"}>
+              <Navigation />
+              <div className="pt-16 pb-16 md:pb-0">
+                {/* Network status banner */}
+                <div className="sticky top-16 z-40">
+                  <NetworkStatus variant="banner" />
+                </div>
+                
+                {/* Main content with mobile-optimized padding */}
+                <ErrorBoundary level="component" maxRetries={2}>
+                  <div className="min-h-[calc(100vh-8rem)] md:min-h-[calc(100vh-4rem)]">
+                    {children}
+                  </div>
+                </ErrorBoundary>
+                
+                {/* Toast notifications */}
+                <Toaster
+                  position="top-right"
+                  toastOptions={{
+                    duration: 4000,
+                    style: {
+                      background: "#1e293b",
+                      color: "#f1f5f9",
+                      border: "1px solid #475569",
+                    },
+                    success: {
+                      style: {
+                        background: "#1e293b",
+                        color: "#10b981",
+                        border: "1px solid #10b981",
+                      },
+                    },
+                    error: {
+                      style: {
+                        background: "#1e293b",
+                        color: "#ef4444",
+                        border: "1px solid #ef4444",
+                      },
+                    },
+                  }}
+                />
+              </div>
+            </ErrorBoundary>
+          </LoadingProvider>
+        </ErrorProvider>
       </body>
     </html>
   )

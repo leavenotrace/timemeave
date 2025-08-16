@@ -5,6 +5,12 @@ import { supabase } from "@/lib/supabase/client"
 import type { TFIData, GraphNode, Action, Module } from "@/lib/supabase/client"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
+import { ErrorBoundary } from "@/components/ui/error-boundary"
+import { ErrorDisplay } from "@/components/ui/error-display"
+import { LoadingSpinner, FullPageLoading } from "@/components/ui/loading-spinner"
+import { useAsyncOperation } from "@/lib/hooks/use-async-operation"
+import { useNetworkStatus } from "@/lib/hooks/use-network-status"
+import { toastUtils } from "@/lib/toast-utils"
 import {
   BarChart,
   Bar,
@@ -26,46 +32,51 @@ export default function TFIDashboard() {
   const [graphNodes, setGraphNodes] = useState<GraphNode[]>([])
   const [actions, setActions] = useState<Action[]>([])
   const [modules, setModules] = useState<Module[]>([])
-  const [loading, setLoading] = useState(true)
-  const [refreshing, setRefreshing] = useState(false)
-
-  useEffect(() => {
-    fetchAllData()
-  }, [])
+  const { isOnline } = useNetworkStatus()
 
   const fetchAllData = async () => {
-    setLoading(true)
-    try {
-      // Fetch TFI data
-      const { data: tfi, error: tfiError } = await supabase.rpc("calculate_tfi")
-      if (tfiError) throw tfiError
+    // Fetch TFI data
+    const { data: tfi, error: tfiError } = await supabase.rpc("calculate_tfi")
+    if (tfiError) throw new Error(`Failed to calculate TFI: ${tfiError.message}`)
 
-      // Fetch all entities
-      const [graphResult, actionsResult, modulesResult] = await Promise.all([
-        supabase.from("graph").select("*"),
-        supabase.from("actions").select("*"),
-        supabase.from("modules").select("*"),
-      ])
+    // Fetch all entities
+    const [graphResult, actionsResult, modulesResult] = await Promise.all([
+      supabase.from("graph").select("*"),
+      supabase.from("actions").select("*"),
+      supabase.from("modules").select("*"),
+    ])
 
-      if (graphResult.error) throw graphResult.error
-      if (actionsResult.error) throw actionsResult.error
-      if (modulesResult.error) throw modulesResult.error
+    if (graphResult.error) throw new Error(`Failed to fetch graph nodes: ${graphResult.error.message}`)
+    if (actionsResult.error) throw new Error(`Failed to fetch actions: ${actionsResult.error.message}`)
+    if (modulesResult.error) throw new Error(`Failed to fetch modules: ${modulesResult.error.message}`)
 
-      setTfiData(tfi)
-      setGraphNodes(graphResult.data || [])
-      setActions(actionsResult.data || [])
-      setModules(modulesResult.data || [])
-    } catch (error) {
-      console.error("Error fetching dashboard data:", error)
-    } finally {
-      setLoading(false)
-    }
+    setTfiData(tfi)
+    setGraphNodes(graphResult.data || [])
+    setActions(actionsResult.data || [])
+    setModules(modulesResult.data || [])
+
+    return { tfi, graphNodes: graphResult.data, actions: actionsResult.data, modules: modulesResult.data }
   }
 
-  const handleRefresh = async () => {
-    setRefreshing(true)
-    await fetchAllData()
-    setRefreshing(false)
+  const { loading, error, execute: loadData, retry } = useAsyncOperation(fetchAllData, {
+    showSuccessToast: false,
+    showErrorToast: true,
+    retryCount: isOnline ? 2 : 0,
+    retryDelay: 1000
+  })
+
+  const { loading: refreshing, execute: refreshData } = useAsyncOperation(fetchAllData, {
+    showSuccessToast: true,
+    successMessage: "Dashboard data refreshed successfully",
+    showErrorToast: true
+  })
+
+  useEffect(() => {
+    loadData()
+  }, [])
+
+  const handleRefresh = () => {
+    refreshData()
   }
 
   const getProductivityInsights = () => {
@@ -153,9 +164,15 @@ export default function TFIDashboard() {
   }
 
   if (loading) {
+    return <FullPageLoading text="Loading your TFI dashboard..." />
+  }
+
+  if (error) {
     return (
-      <div className="flex items-center justify-center min-h-screen">
-        <div className="text-amber-400 text-lg">Loading your TFI dashboard...</div>
+      <div className="container mx-auto px-4 py-8 max-w-7xl">
+        <div className="flex items-center justify-center min-h-[400px]">
+          <ErrorDisplay error={error} onRetry={retry} />
+        </div>
       </div>
     )
   }

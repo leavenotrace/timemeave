@@ -1,177 +1,272 @@
-"use client"
-import { useEffect, useState } from "react"
-import { createClient } from "@/lib/supabase/client"
-import { useLanguage } from "@/lib/i18n"
-import GraphDashboard from "@/components/graph-dashboard"
-import { LanguageSwitcher } from "@/components/language-switcher"
-import { Button } from "@/components/ui/button"
 import Link from "next/link"
+import { Button } from "@/components/ui/button"
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { Badge } from "@/components/ui/badge"
+import { Network, Layers, Zap, BarChart3, Eye, BookOpen, ArrowRight, CheckCircle, Clock, Users } from "lucide-react"
 
-export default function Home() {
-  const [user, setUser] = useState<any>(null)
-  const [loading, setLoading] = useState(true)
-  const [mounted, setMounted] = useState(false)
+export default function HomePage() {
+  return (
+    <div className="min-h-screen bg-slate-950">
+      {/* Hero Section */}
+      <div className="container mx-auto px-4 py-16">
+        <div className="max-w-4xl mx-auto text-center space-y-8">
+          <div className="space-y-4">
+            <Badge variant="secondary" className="mb-4">
+              时间编织者 - Time Weaver
+            </Badge>
+            <h1 className="text-4xl md:text-6xl font-bold text-white">
+              Weave Your Time,
+              <br />
+              <span className="text-amber-400">Restructure Your Productivity</span>
+            </h1>
+            <p className="text-xl text-slate-400 max-w-2xl mx-auto">
+              A revolutionary productivity system that combines knowledge graphs, action management, 
+              and automation modules to help you organize and optimize your workflow.
+            </p>
+          </div>
 
-  const { language, setLanguage, t } = useLanguage()
-  const supabase = createClient()
-
-  useEffect(() => {
-    setMounted(true)
-    
-    // 检查用户认证状态
-    const checkUser = async () => {
-      try {
-        if (!supabase) {
-          setUser(null)
-          setLoading(false)
-          return
-        }
-        
-        const {
-          data: { user },
-        } = await supabase.auth.getUser()
-        setUser(user)
-      } catch (error) {
-        console.error("Error checking user:", error)
-        setUser(null)
-      } finally {
-        setLoading(false)
-      }
-    }
-
-    checkUser()
-
-    // 监听认证状态变化
-    if (supabase) {
-      const {
-        data: { subscription },
-      } = supabase.auth.onAuthStateChange((event, session) => {
-        setUser(session?.user ?? null)
-        setLoading(false)
-      })
-
-      return () => subscription.unsubscribe()
-    }
-  }, [])
-
-  // 防止水合错误，在客户端挂载前显示加载状态
-  if (!mounted) {
-    return (
-      <div className="flex min-h-screen items-center justify-center bg-slate-950">
-        <div className="text-amber-400 text-xl">Loading...</div>
-      </div>
-    )
-  }
-
-  if (loading) {
-    return (
-      <div className="flex min-h-screen items-center justify-center bg-slate-950">
-        <div className="text-amber-400 text-xl">{t.common.loading}</div>
-      </div>
-    )
-  }
-
-  if (!user) {
-    return (
-      <div className="min-h-screen bg-slate-950 flex flex-col">
-        <div className="flex justify-end p-4">
-          <LanguageSwitcher currentLanguage={language} onLanguageChange={setLanguage} />
+          <div className="flex flex-col sm:flex-row gap-4 justify-center">
+            <Link href="/auth/signup">
+              <Button size="lg" className="bg-amber-600 hover:bg-amber-700 text-white">
+                Get Started Free
+                <ArrowRight className="ml-2 h-4 w-4" />
+              </Button>
+            </Link>
+            <Link href="/demo">
+              <Button size="lg" variant="outline">
+                <Eye className="mr-2 h-4 w-4" />
+                Try Demo
+              </Button>
+            </Link>
+          </div>
         </div>
+      </div>
 
-        <div className="flex-1 flex items-center justify-center">
-          <div className="text-center space-y-8 max-w-lg mx-auto px-4">
-            <div className="space-y-4">
-              <h1 className="text-5xl font-bold text-amber-400">TimeWeave</h1>
-              <p className="text-slate-300 text-xl">
-                {language === "zh" ? "时间编织 - 重构你的生产力" : "Weave Your Time - Restructure Your Productivity"}
-              </p>
-            </div>
+      {/* Features Section */}
+      <div className="container mx-auto px-4 py-16">
+        <div className="max-w-6xl mx-auto">
+          <div className="text-center mb-12">
+            <h2 className="text-3xl font-bold text-white mb-4">Core Features</h2>
+            <p className="text-slate-400 max-w-2xl mx-auto">
+              TimeWeave combines multiple productivity methodologies into one cohesive system
+            </p>
+          </div>
 
-            <div className="space-y-4 text-slate-400">
-              <div className="flex items-center gap-3">
-                <div className="w-3 h-3 bg-blue-400 rounded-full"></div>
-                <span className="text-lg">
-                  {language === "zh" ? "过去可重写 - 知识图谱管理" : "Past can be rewritten - Knowledge Graph"}
-                </span>
-              </div>
-              <div className="flex items-center gap-3">
-                <div className="w-3 h-3 bg-green-400 rounded-full"></div>
-                <span className="text-lg">
-                  {language === "zh" ? "现在可折叠 - 行动效率优化" : "Present can be folded - Action Optimization"}
-                </span>
-              </div>
-              <div className="flex items-center gap-3">
-                <div className="w-3 h-3 bg-purple-400 rounded-full"></div>
-                <span className="text-lg">
-                  {language === "zh" ? "未来可预编译 - 自动化模块" : "Future can be pre-compiled - Automation"}
-                </span>
-              </div>
-            </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            <Card>
+              <CardHeader>
+                <Network className="h-8 w-8 text-blue-400 mb-2" />
+                <CardTitle>Knowledge Graph</CardTitle>
+                <CardDescription>
+                  Visual representation of interconnected information and ideas
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <ul className="text-sm text-slate-400 space-y-1">
+                  <li>• Create and link knowledge nodes</li>
+                  <li>• Smart tagging and categorization</li>
+                  <li>• Visual relationship mapping</li>
+                </ul>
+              </CardContent>
+            </Card>
 
-            <div className="bg-slate-800/50 border border-amber-600/30 rounded-lg p-6 space-y-4">
-              <h3 className="text-amber-400 font-semibold text-lg">
-                {language === "zh" ? "🚀 立即体验测试账号" : "🚀 Try Demo Accounts"}
-              </h3>
-              <div className="space-y-3 text-left">
-                <div className="bg-slate-700/50 rounded p-3">
-                  <p className="text-amber-300 font-medium">📧 demo.pm@timeweave.app</p>
+            <Card>
+              <CardHeader>
+                <Layers className="h-8 w-8 text-amber-400 mb-2" />
+                <CardTitle>Action Folding</CardTitle>
+                <CardDescription>
+                  Hierarchical task organization with intelligent grouping
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <ul className="text-sm text-slate-400 space-y-1">
+                  <li>• Fold related tasks together</li>
+                  <li>• Priority-based organization</li>
+                  <li>• Time estimation and tracking</li>
+                </ul>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader>
+                <Zap className="h-8 w-8 text-green-400 mb-2" />
+                <CardTitle>Automation Modules</CardTitle>
+                <CardDescription>
+                  Customizable workflows and triggers for repetitive tasks
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <ul className="text-sm text-slate-400 space-y-1">
+                  <li>• Template-based workflows</li>
+                  <li>• Time and event triggers</li>
+                  <li>• Execution tracking</li>
+                </ul>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader>
+                <BarChart3 className="h-8 w-8 text-purple-400 mb-2" />
+                <CardTitle>TFI Dashboard</CardTitle>
+                <CardDescription>
+                  Time Folding Index - measure and optimize your productivity
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <ul className="text-sm text-slate-400 space-y-1">
+                  <li>• Real-time efficiency metrics</li>
+                  <li>• Trend analysis and insights</li>
+                  <li>• Performance optimization tips</li>
+                </ul>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader>
+                <Eye className="h-8 w-8 text-cyan-400 mb-2" />
+                <CardTitle>Unified Workbench</CardTitle>
+                <CardDescription>
+                  All-in-one workspace with multiple view modes
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <ul className="text-sm text-slate-400 space-y-1">
+                  <li>• Grid, list, timeline views</li>
+                  <li>• Cross-system search</li>
+                  <li>• Real-time data sync</li>
+                </ul>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader>
+                <BookOpen className="h-8 w-8 text-pink-400 mb-2" />
+                <CardTitle>Mobile Optimized</CardTitle>
+                <CardDescription>
+                  Touch-friendly interface with gesture support
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <ul className="text-sm text-slate-400 space-y-1">
+                  <li>• Swipe actions and gestures</li>
+                  <li>• Responsive design</li>
+                  <li>• Offline support</li>
+                </ul>
+              </CardContent>
+            </Card>
+          </div>
+        </div>
+      </div>
+
+      {/* Benefits Section */}
+      <div className="container mx-auto px-4 py-16">
+        <div className="max-w-4xl mx-auto">
+          <div className="text-center mb-12">
+            <h2 className="text-3xl font-bold text-white mb-4">Why Choose TimeWeave?</h2>
+            <p className="text-slate-400">
+              Built for modern knowledge workers who need more than just another todo app
+            </p>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+            <div className="space-y-6">
+              <div className="flex items-start gap-4">
+                <CheckCircle className="h-6 w-6 text-green-400 mt-1 flex-shrink-0" />
+                <div>
+                  <h3 className="font-semibold text-white mb-1">Holistic Approach</h3>
                   <p className="text-slate-400 text-sm">
-                    {language === "zh"
-                      ? "产品经理 - 包含产品路线图、用户研究等数据"
-                      : "Product Manager - Product roadmaps, user research data"}
+                    Combines task management, knowledge organization, and automation in one system
                   </p>
                 </div>
-                <div className="bg-slate-700/50 rounded p-3">
-                  <p className="text-amber-300 font-medium">📧 demo.dev@timeweave.app</p>
+              </div>
+
+              <div className="flex items-start gap-4">
+                <Clock className="h-6 w-6 text-amber-400 mt-1 flex-shrink-0" />
+                <div>
+                  <h3 className="font-semibold text-white mb-1">Time Folding Technology</h3>
                   <p className="text-slate-400 text-sm">
-                    {language === "zh"
-                      ? "软件开发者 - 包含技术文档、开发任务等数据"
-                      : "Software Developer - Technical docs, development tasks"}
+                    Revolutionary approach to grouping and executing related tasks efficiently
                   </p>
                 </div>
-                <div className="text-center">
-                  <p className="text-amber-400 font-medium">
-                    🔑 {language === "zh" ? "统一密码：" : "Password:"} TimeWeave2024!
+              </div>
+
+              <div className="flex items-start gap-4">
+                <Users className="h-6 w-6 text-blue-400 mt-1 flex-shrink-0" />
+                <div>
+                  <h3 className="font-semibold text-white mb-1">Built for Teams</h3>
+                  <p className="text-slate-400 text-sm">
+                    Designed to scale from personal use to team collaboration
                   </p>
                 </div>
               </div>
             </div>
 
-            <div className="flex gap-4 justify-center">
-              <Link href="/auth/login">
-                <Button className="bg-amber-600 hover:bg-amber-700 text-white px-8 py-3 text-lg">{t.nav.signIn}</Button>
-              </Link>
-              <Link href="/auth/signup">
-                <Button
-                  variant="outline"
-                  className="border-amber-600 text-amber-400 hover:bg-amber-600 hover:text-white bg-transparent px-8 py-3 text-lg"
-                >
-                  {t.nav.signUp}
-                </Button>
-              </Link>
-            </div>
-
-            <div className="border-t border-slate-700 pt-6 mt-8">
-              <div className="text-center space-y-2 text-slate-400">
-                <div className="flex items-center justify-center gap-4 text-sm">
-                  <span>📱 {language === "zh" ? "电话/微信：" : "Phone/WeChat:"} 13112312211</span>
-                  <span className="text-slate-600">|</span>
-                  <span>👨‍💼 CTO: Bob Zheng</span>
+            <div className="space-y-6">
+              <div className="flex items-start gap-4">
+                <Network className="h-6 w-6 text-purple-400 mt-1 flex-shrink-0" />
+                <div>
+                  <h3 className="font-semibold text-white mb-1">Connected Knowledge</h3>
+                  <p className="text-slate-400 text-sm">
+                    Your information becomes more valuable through intelligent connections
+                  </p>
                 </div>
-                <div className="text-sm">
-                  <span>📧 Email: bob@happyshare.io</span>
+              </div>
+
+              <div className="flex items-start gap-4">
+                <Zap className="h-6 w-6 text-green-400 mt-1 flex-shrink-0" />
+                <div>
+                  <h3 className="font-semibold text-white mb-1">Smart Automation</h3>
+                  <p className="text-slate-400 text-sm">
+                    Reduce repetitive work with intelligent automation modules
+                  </p>
+                </div>
+              </div>
+
+              <div className="flex items-start gap-4">
+                <BarChart3 className="h-6 w-6 text-cyan-400 mt-1 flex-shrink-0" />
+                <div>
+                  <h3 className="font-semibold text-white mb-1">Data-Driven Insights</h3>
+                  <p className="text-slate-400 text-sm">
+                    Make informed decisions with comprehensive productivity analytics
+                  </p>
                 </div>
               </div>
             </div>
           </div>
         </div>
       </div>
-    )
-  }
 
-  return (
-    <div className="min-h-screen bg-slate-950">
-      <GraphDashboard />
+      {/* CTA Section */}
+      <div className="container mx-auto px-4 py-16">
+        <div className="max-w-2xl mx-auto text-center space-y-8">
+          <div className="space-y-4">
+            <h2 className="text-3xl font-bold text-white">
+              Ready to Transform Your Productivity?
+            </h2>
+            <p className="text-slate-400">
+              Join thousands of users who have revolutionized their workflow with TimeWeave
+            </p>
+          </div>
+
+          <div className="flex flex-col sm:flex-row gap-4 justify-center">
+            <Link href="/auth/signup">
+              <Button size="lg" className="bg-amber-600 hover:bg-amber-700 text-white">
+                Start Free Trial
+                <ArrowRight className="ml-2 h-4 w-4" />
+              </Button>
+            </Link>
+            <Link href="/auth/login">
+              <Button size="lg" variant="outline">
+                Sign In
+              </Button>
+            </Link>
+          </div>
+
+          <p className="text-xs text-slate-500">
+            No credit card required • Free forever plan available
+          </p>
+        </div>
+      </div>
     </div>
   )
 }

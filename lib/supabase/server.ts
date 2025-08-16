@@ -28,33 +28,11 @@ export async function createClient() {
   }
 
   try {
-    const cookieStore = await cookies()
-
+    // For server-side, we'll use a simple client without cookie storage
+    // to avoid the cookie modification issues
     const supabase = createSupabaseClient(
       process.env.NEXT_PUBLIC_SUPABASE_URL!,
-      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-      {
-        auth: {
-          persistSession: true, // Enable session persistence
-          storage: {
-            getItem: async (key: string) => {
-              const cookie = cookieStore.get(key)
-              return cookie?.value || null
-            },
-            setItem: async (key: string, value: string) => {
-              cookieStore.set(key, value, {
-                httpOnly: true,
-                secure: process.env.NODE_ENV === "production",
-                sameSite: "lax",
-                maxAge: 60 * 60 * 24 * 7, // 7 days
-              })
-            },
-            removeItem: async (key: string) => {
-              cookieStore.delete(key)
-            },
-          },
-        },
-      },
+      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
     )
 
     return supabase
@@ -75,4 +53,34 @@ export async function createClient() {
       }),
     } as any
   }
+}
+
+// For use in Server Actions and Route Handlers where cookies can be modified
+export async function createClientWithCookieModification() {
+  if (!isSupabaseConfigured) {
+    console.warn("Supabase environment variables are not set. Using dummy client.")
+    return {
+      auth: {
+        getUser: () => Promise.resolve({ data: { user: null }, error: null }),
+        getSession: () => Promise.resolve({ data: { session: null }, error: null }),
+        signOut: () => Promise.resolve({ error: null }),
+        exchangeCodeForSession: () => Promise.resolve({ error: null }),
+      },
+      from: () => ({
+        select: () => Promise.resolve({ data: [], error: null }),
+        insert: () => Promise.resolve({ data: null, error: null }),
+        update: () => Promise.resolve({ data: null, error: null }),
+        delete: () => Promise.resolve({ data: null, error: null }),
+      }),
+    } as any
+  }
+
+  // For Server Actions, we'll use the basic client
+  // The cookie handling will be managed by the client-side
+  const supabase = createSupabaseClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+  )
+
+  return supabase
 }
