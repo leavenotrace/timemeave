@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
 import Link from "next/link"
 import { Button } from "@/components/ui/button"
@@ -8,7 +8,7 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Alert, AlertDescription } from "@/components/ui/alert"
-import { createClient } from "@/lib/supabase/client"
+import { useAuth } from "@/components/providers/auth-provider"
 import { Eye, EyeOff, Home, Loader2 } from "lucide-react"
 import { toastUtils } from "@/lib/toast-utils"
 
@@ -16,48 +16,40 @@ export default function LoginPage() {
   const [email, setEmail] = useState("")
   const [password, setPassword] = useState("")
   const [showPassword, setShowPassword] = useState(false)
-  const [loading, setLoading] = useState(false)
   const [error, setError] = useState("")
   const router = useRouter()
+  
+  const { signIn, loading, user, enterDemoMode } = useAuth()
+
+  // Redirect if already authenticated
+  useEffect(() => {
+    if (user) {
+      router.push("/dashboard")
+    }
+  }, [user, router])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    setLoading(true)
     setError("")
 
     if (!email || !password) {
       setError("Please fill in all fields")
-      setLoading(false)
       return
     }
 
-    try {
-      const supabase = createClient()
-      const { error } = await supabase.auth.signInWithPassword({
-        email,
-        password,
-      })
-
-      if (error) {
-        setError(error.message)
-        toastUtils.error(error.message)
-      } else {
-        toastUtils.success("Successfully signed in!")
-        router.push("/dashboard")
-        router.refresh()
-      }
-    } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : "An unexpected error occurred"
-      setError(errorMessage)
-      toastUtils.error(errorMessage)
-    } finally {
-      setLoading(false)
+    const result = await signIn(email, password)
+    
+    if (result.error) {
+      setError(result.error)
+      toastUtils.error(result.error)
+    } else {
+      // Success will be handled by the auth provider
+      router.push("/dashboard")
     }
   }
 
   const handleDemoLogin = () => {
-    toastUtils.info("Demo mode - redirecting to dashboard")
-    router.push("/dashboard")
+    enterDemoMode()
   }
 
   return (

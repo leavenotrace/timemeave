@@ -4,21 +4,20 @@ import Link from "next/link"
 import { usePathname, useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { Network, Layers, Zap, BarChart3, Eye, Home, LogOut, BookOpen, Menu, X, User, Settings } from "lucide-react"
-import { createClient } from "@/lib/supabase/client"
 import { useEffect, useState } from "react"
 import { useLanguage } from "@/lib/i18n"
 import { LanguageSwitcher } from "@/components/language-switcher"
 import { NetworkStatus } from "@/components/ui/network-status"
+import { useAuth } from "@/components/providers/auth-provider"
 import { cn } from "@/lib/utils"
 
 export default function Navigation() {
   const pathname = usePathname()
   const router = useRouter()
-  const [user, setUser] = useState<any>(null)
-  const [loading, setLoading] = useState(true)
   const [mounted, setMounted] = useState(false)
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
   
+  const { user, loading, signOut } = useAuth()
   const { language, setLanguage, t } = useLanguage()
 
   const navItems = [
@@ -32,32 +31,6 @@ export default function Navigation() {
 
   useEffect(() => {
     setMounted(true)
-    
-    const supabase = createClient()
-    if (!supabase) {
-      setLoading(false)
-      return
-    }
-
-    // Get initial session
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      setUser(session?.user ?? null)
-      setLoading(false)
-    })
-
-    // Listen for auth changes
-    const {
-      data: { subscription },
-    } = supabase.auth.onAuthStateChange((_event, session) => {
-      setUser(session?.user ?? null)
-      setLoading(false)
-    })
-
-    return () => {
-      if (subscription && subscription.unsubscribe) {
-        subscription.unsubscribe()
-      }
-    }
   }, [])
 
   // Close mobile menu when route changes
@@ -87,22 +60,7 @@ export default function Navigation() {
   }, [mobileMenuOpen])
 
   const handleSignOut = async () => {
-    try {
-      // Use client-side sign out for immediate UI feedback
-      const supabase = createClient()
-      if (supabase) {
-        await supabase.auth.signOut()
-      }
-      
-      // Navigate to home page
-      router.push("/")
-      router.refresh()
-    } catch (error) {
-      console.error("Sign out error:", error)
-      // Fallback: still navigate to home
-      router.push("/")
-      router.refresh()
-    }
+    await signOut()
   }
 
   const toggleMobileMenu = () => {

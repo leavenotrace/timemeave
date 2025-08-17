@@ -1,26 +1,31 @@
-import { createClient, isSupabaseConfigured } from "@/lib/supabase/server"
-import { redirect } from "next/navigation"
-import ModulesDashboard from "@/components/modules-dashboard"
+"use client"
 
-export default async function ModulesPage() {
-  // If Supabase is not configured, show setup message
-  if (!isSupabaseConfigured) {
+import { useAuth } from "@/components/providers/auth-provider"
+import { useRouter } from "next/navigation"
+import { useEffect } from "react"
+import ModulesDashboard from "@/components/modules-dashboard"
+import { LoadingSpinner } from "@/components/ui/loading-spinner"
+
+export default function ModulesPage() {
+  const { user, loading } = useAuth()
+  const router = useRouter()
+
+  useEffect(() => {
+    if (!loading && !user) {
+      router.push("/auth/login")
+    }
+  }, [user, loading, router])
+
+  if (loading) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-slate-950">
-        <h1 className="text-2xl font-bold mb-4 text-white">Connect Supabase to get started</h1>
+      <div className="min-h-screen bg-slate-950 flex items-center justify-center">
+        <LoadingSpinner size="lg" text="Loading automation modules..." />
       </div>
     )
   }
 
-  // Get the user from the server
-  const supabase = await createClient()
-  const {
-    data: { user },
-  } = await supabase.auth.getUser()
-
-  // If no user, redirect to login
   if (!user) {
-    redirect("/auth/login")
+    return null // Will redirect via useEffect
   }
 
   return (

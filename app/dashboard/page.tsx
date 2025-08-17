@@ -1,10 +1,36 @@
+"use client"
+
+import { useAuth } from "@/components/providers/auth-provider"
+import { useRouter } from "next/navigation"
+import { useEffect } from "react"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
+import { LoadingSpinner } from "@/components/ui/loading-spinner"
 import { BarChart3, Network, Layers, Zap, Eye, BookOpen, Plus, TrendingUp, Clock, CheckCircle } from "lucide-react"
 import Link from "next/link"
 
 export default function DashboardPage() {
+  const { user, loading, isDemoMode } = useAuth()
+  const router = useRouter()
+
+  useEffect(() => {
+    if (!loading && !user) {
+      router.push("/auth/login")
+    }
+  }, [user, loading, router])
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-slate-950 flex items-center justify-center">
+        <LoadingSpinner size="lg" text="Loading dashboard..." />
+      </div>
+    )
+  }
+
+  if (!user) {
+    return null // Will redirect via useEffect
+  }
   return (
     <div className="container mx-auto px-4 py-8">
       <div className="max-w-6xl mx-auto space-y-8">
@@ -12,7 +38,14 @@ export default function DashboardPage() {
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
           <div>
             <h1 className="text-3xl font-bold text-white">Dashboard</h1>
-            <p className="text-slate-400 mt-1">Welcome to your TimeWeave workspace</p>
+            <p className="text-slate-400 mt-1">
+              Welcome to your TimeWeave workspace
+              {isDemoMode && (
+                <Badge variant="secondary" className="ml-2">
+                  Demo Mode
+                </Badge>
+              )}
+            </p>
           </div>
           <div className="flex gap-2">
             <Link href="/demo">

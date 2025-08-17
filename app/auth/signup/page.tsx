@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
 import Link from "next/link"
 import { Button } from "@/components/ui/button"
@@ -8,7 +8,7 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Alert, AlertDescription } from "@/components/ui/alert"
-import { createClient } from "@/lib/supabase/client"
+import { useAuth } from "@/components/providers/auth-provider"
 import { Eye, EyeOff, Home, Loader2, CheckCircle } from "lucide-react"
 import { toastUtils } from "@/lib/toast-utils"
 
@@ -18,10 +18,18 @@ export default function SignUpPage() {
   const [confirmPassword, setConfirmPassword] = useState("")
   const [showPassword, setShowPassword] = useState(false)
   const [showConfirmPassword, setShowConfirmPassword] = useState(false)
-  const [loading, setLoading] = useState(false)
   const [error, setError] = useState("")
   const [success, setSuccess] = useState(false)
   const router = useRouter()
+  
+  const { signUp, loading, user, enterDemoMode } = useAuth()
+
+  // Redirect if already authenticated
+  useEffect(() => {
+    if (user) {
+      router.push("/dashboard")
+    }
+  }, [user, router])
 
   const validatePassword = (password: string) => {
     if (password.length < 6) {
@@ -32,55 +40,38 @@ export default function SignUpPage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    setLoading(true)
     setError("")
     setSuccess(false)
 
     if (!email || !password || !confirmPassword) {
       setError("Please fill in all fields")
-      setLoading(false)
       return
     }
 
     const passwordError = validatePassword(password)
     if (passwordError) {
       setError(passwordError)
-      setLoading(false)
       return
     }
 
     if (password !== confirmPassword) {
       setError("Passwords do not match")
-      setLoading(false)
       return
     }
 
-    try {
-      const supabase = createClient()
-      const { error } = await supabase.auth.signUp({
-        email,
-        password,
-      })
-
-      if (error) {
-        setError(error.message)
-        toastUtils.error(error.message)
-      } else {
-        setSuccess(true)
-        toastUtils.success("Account created successfully! Please check your email to verify your account.")
-      }
-    } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : "An unexpected error occurred"
-      setError(errorMessage)
-      toastUtils.error(errorMessage)
-    } finally {
-      setLoading(false)
+    const result = await signUp(email, password)
+    
+    if (result.error) {
+      setError(result.error)
+      toastUtils.error(result.error)
+    } else if (result.success) {
+      setSuccess(true)
+      toastUtils.success(result.success)
     }
   }
 
   const handleDemoMode = () => {
-    toastUtils.info("Demo mode - redirecting to dashboard")
-    router.push("/dashboard")
+    enterDemoMode()
   }
 
   if (success) {

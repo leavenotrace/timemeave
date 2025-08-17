@@ -7,6 +7,7 @@ import Navigation from "@/components/navigation"
 import { Toaster } from "react-hot-toast"
 import { ErrorProvider } from "@/components/providers/error-provider"
 import { LoadingProvider } from "@/components/providers/loading-provider"
+import { AuthProvider } from "@/components/providers/auth-provider"
 import { ErrorBoundary } from "@/components/ui/error-boundary"
 import { NetworkStatus } from "@/components/ui/network-status"
 
@@ -36,7 +37,8 @@ html {
       <body>
         <ErrorProvider>
           <LoadingProvider>
-            <ErrorBoundary level="page" maxRetries={3} showErrorDetails={process.env.NODE_ENV === "development"}>
+            <AuthProvider>
+              <ErrorBoundary level="page" maxRetries={3} showErrorDetails={process.env.NODE_ENV === "development"}>
               <Navigation />
               <div className="pt-16 pb-16 md:pb-0">
                 {/* Network status banner */}
@@ -78,7 +80,8 @@ html {
                   }}
                 />
               </div>
-            </ErrorBoundary>
+              </ErrorBoundary>
+            </AuthProvider>
           </LoadingProvider>
         </ErrorProvider>
       </body>
